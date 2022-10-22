@@ -26,13 +26,16 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
             lines = reader.readlines()
             espRefLines = [x for x in lines if x.startswith("content=")]
             dataRefLines = [x for x in lines if x.startswith("data=")]
-            bsaRefLines = [x for x in lines if x.startswith("fallback-archive=")]
+            bsaRefLines = [
+                x for x in lines if x.startswith("fallback-archive=")]
     elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(".esm") or x.lower().endswith(".omwaddon")]
+            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(
+                ".esm") or x.lower().endswith(".omwaddon")]
             bsaRefLines = [x for x in lines if x.endswith(".bsa")]
-            dataRefLines = [x for x in lines if x not in espRefLines and x not in bsaRefLines]
+            dataRefLines = [
+                x for x in lines if x not in espRefLines and x not in bsaRefLines]
 
     for mod in modList:
         with os.scandir(mod.path) as entries:
@@ -54,11 +57,11 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
         cfgBsaList = [x.removeprefix("fallback-archive=")
                       for x in lines if x.startswith("fallback-archive=")]
 
-    newBsaLines = helper_funtion(
+    newBsaLines = generate_cfg_lines(
         cfgBsaList, bsaList, bsaRefLines, "fallback-archive=", False)
-    newEspLines = helper_funtion(
+    newEspLines = generate_cfg_lines(
         cfgEspList, espList, espRefLines, "content=", False)
-    newDataLines = helper_funtion(
+    newDataLines = generate_cfg_lines(
         cfgDataList, modList, dataRefLines, "data=", True)
 
     print("\nfallback-archives (bsa files)\n")
@@ -76,12 +79,12 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
     print()
 
 
-def helper_funtion(cfgList, dataList, refLines, prefix, path) -> List[str]:
+def generate_cfg_lines(cfgList, dataList, refLines, prefix, cfgIsPath) -> List[str]:
     newLines = []
     toSort = defaultdict(list)
     atEnd = []
 
-    if path == False:
+    if cfgIsPath == False:
         def cfg_name(x): return x
         def cfg_string(x): return x
         def data_string(x): return x.name
@@ -93,7 +96,7 @@ def helper_funtion(cfgList, dataList, refLines, prefix, path) -> List[str]:
     for cfgData in cfgList:
         highest = (-1, 0)
         for i, refLine in enumerate(refLines):
-            distance = reverse_hamming(refLine, cfg_name(cfgData))
+            distance = custom_string_similarity(refLine, cfg_name(cfgData))
             if distance > highest[1]:
                 highest = (i, distance)
         if highest[0] < 0:
@@ -104,7 +107,7 @@ def helper_funtion(cfgList, dataList, refLines, prefix, path) -> List[str]:
     for newData in dataList:
         highest = (-1, 0)
         for i, refLine in enumerate(refLines):
-            distance = reverse_hamming(refLine, newData.name)
+            distance = custom_string_similarity(refLine, newData.name)
             if distance > highest[1]:
                 highest = (i, distance)
         if highest[0] < 0:
@@ -124,7 +127,7 @@ def helper_funtion(cfgList, dataList, refLines, prefix, path) -> List[str]:
     return newLines
 
 
-def reverse_hamming(fst: str, snd: str) -> int:
+def custom_string_similarity(fst: str, snd: str) -> int:
     longest = fst if len(fst) > len(snd) else snd
     shortest = snd if longest == fst else fst
 
