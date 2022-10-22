@@ -11,7 +11,7 @@ class path:
     name: str
 
 
-skipped = []
+skipped: List[path] = []
 
 
 def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsCfg: bool):
@@ -79,7 +79,7 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
     print()
 
 
-def generate_cfg_lines(cfgList, dataList, refLines, prefix, cfgIsPath) -> List[str]:
+def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, prefix: str, cfgIsPath: bool) -> List[str]:
     newLines = []
     toSort = defaultdict(list)
     atEnd = []
@@ -127,6 +127,7 @@ def generate_cfg_lines(cfgList, dataList, refLines, prefix, cfgIsPath) -> List[s
     return newLines
 
 
+#horrible optimization. I wanted to parallelize, but python is a bitch
 def custom_string_similarity(fst: str, snd: str) -> int:
     longest = fst if len(fst) > len(snd) else snd
     shortest = snd if longest == fst else fst
@@ -313,10 +314,10 @@ def handle_defective_mod_dir(dir: path) -> List[path]:
 #   if it is a mod with options
 #       find all options
 #       ask the user to select wanted options
-#       for each selected option, start from the line 311
+#       for each selected option, go back to start of the loop using that options
 #   it is not a valid mod nor a mod with options
 #       if there is no valid option in the subdirectories, notify the user and skip
-#       if there is only a single valid option in the subdirectories, go to line 311 using that directory
+#       if there is only a single valid option in the subdirectories, go back to start of the loop using that directory
 #       input: fix manually and come back, select from a list of valid options in subdirectories or skip
 #       execute the selected option
 
@@ -358,6 +359,6 @@ else:
 
 install_mods(modDirs, cfgFile, reference, referenceIsCfg)
 
-print("\nThe following directories were skipped during this installation, because the directories did not contain valid mods. You might want to fix them\n")
+print("\nThe following directories were skipped during this installation. They might contain broken mods or not contain mods at all.\n")
 for entry in skipped:
-    print(entry)
+    print(entry.path)
