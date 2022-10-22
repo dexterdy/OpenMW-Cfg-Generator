@@ -22,49 +22,43 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
     bsaList = []
 
     if reference != None and referenceIsCfg:
-        for mod in modList:
-            with os.scandir(mod.path) as entries:
-                for entry in entries:
-                    if entry.name.lower().endswith(".esp") or entry.name.lower().endswith(".esm") or entry.name.lower().endswith(".omwaddon"):
-                        espList.append(entry)
-                    if entry.name.lower().endswith(".bsa"):
-                        bsaList.append(entry)
-
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = list(
-                filter(lambda x: x.startswith("content="), lines))
-            dataRefLines = list(filter(lambda x: x.startswith("data="), lines))
-            bsaRefLines = list(
-                filter(lambda x: x.startswith("fallback-archive="), lines))
-
-    else:
-        for mod in modList:
-            with os.scandir(mod.path) as entries:
-                for entry in entries:
-                    if entry.name.lower().endswith(".bsa"):
-                        bsaList.append(entry)
-
+            espRefLines = [x for x in lines if x.startswith("content=")]
+            dataRefLines = [x for x in lines if x.startswith("data=")]
+            bsaRefLines = [
+                x for x in lines if x.startswith("fallback-archive=")]
+    elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            bsaRefLines = list(
-                filter(lambda x: x.lower().endswith(".bsa"), lines))
-            dataRefLines = [x for x in lines if x not in bsaRefLines]
+            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(
+                ".esm") or x.lower().endswith(".omwaddon")]
+            bsaRefLines = [x for x in lines if x.endswith(".bsa")]
+            dataRefLines = [
+                x for x in lines if x not in espRefLines and x not in bsaRefLines]
+
+    for mod in modList:
+        with os.scandir(mod.path) as entries:
+            for entry in entries:
+                if entry.name.lower().endswith(".esp") or entry.name.lower().endswith(".esm") or entry.name.lower().endswith(".omwaddon"):
+                    espList.append(entry)
+                if entry.name.lower().endswith(".bsa"):
+                    bsaList.append(entry)
 
     cfgEspList = []
     cfgDataList = []
     cfgBsaList = []
     with open(cfgFile) as reader:
         lines = reader.readlines()
-        cfgEspList = list(map(lambda x: x.removeprefix("content="), filter(
-            lambda x: x.startswith("content="), lines)))
-        cfgDataList = list(map(lambda x: path(x.removeprefix("data="), os.path.basename(x.removeprefix(
-            "data="))), list(filter(lambda x: x.startswith("data="), lines))))
-        cfgBsaList = list(map(lambda x: x.removeprefix("fallback-archive="), list(
-            filter(lambda x: x.startswith("fallback-archive"), reader.readlines()))))
+        cfgEspList = [x.removeprefix("content=")
+                      for x in lines if x.startswith("content=")]
+        cfgDataList = [x.removeprefix("data=")
+                       for x in lines if x.startswith("data=")]
+        cfgBsaList = [x.removeprefix("fallback-archive=")
+                      for x in lines if x.startswith("fallback-archive=")]
 
-    newBsaLines = helper_funtion(cfgBsaList, bsaList, bsaRefLines,
-                                 "fallback-archive=", False)
+    newBsaLines = helper_funtion(
+        cfgBsaList, bsaList, bsaRefLines, "fallback-archive=", False)
     newEspLines = helper_funtion(
         cfgEspList, espList, espRefLines, "content=", False)
     newDataLines = helper_funtion(
@@ -73,12 +67,15 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
     print("\nfallback-archives (bsa files)\n")
     for entry in newBsaLines:
         print(entry)
+
     print("\ncontent (esp, esm and omwaddon files)\n")
     for entry in newEspLines:
         print(entry)
+
     print("\ndata (meshes, textures, etc.)\n")
     for entry in newDataLines:
         print("\"" + entry + "\"")
+        
     print()
 
 
@@ -282,9 +279,10 @@ def handle_defective_mod_dir(dir: path) -> List[path]:
             modDirs.extend(find_mods(dir))
         else:
             skipped.append(dir)
-            
+
     elif len(correct_dir) == 1:
-        newPath = path(correct_dir[0].path, dir.name + "/" + correct_dir[0].name)
+        newPath = path(correct_dir[0].path,
+                       dir.name + "/" + correct_dir[0].name)
         modDirs.extend(find_mods(newPath))
 
     else:
