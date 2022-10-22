@@ -26,16 +26,13 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
             lines = reader.readlines()
             espRefLines = [x for x in lines if x.startswith("content=")]
             dataRefLines = [x for x in lines if x.startswith("data=")]
-            bsaRefLines = [
-                x for x in lines if x.startswith("fallback-archive=")]
+            bsaRefLines = [x for x in lines if x.startswith("fallback-archive=")]
     elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(
-                ".esm") or x.lower().endswith(".omwaddon")]
+            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(".esm") or x.lower().endswith(".omwaddon")]
             bsaRefLines = [x for x in lines if x.endswith(".bsa")]
-            dataRefLines = [
-                x for x in lines if x not in espRefLines and x not in bsaRefLines]
+            dataRefLines = [x for x in lines if x not in espRefLines and x not in bsaRefLines]
 
     for mod in modList:
         with os.scandir(mod.path) as entries:
@@ -75,7 +72,7 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
     print("\ndata (meshes, textures, etc.)\n")
     for entry in newDataLines:
         print("\"" + entry + "\"")
-        
+
     print()
 
 
