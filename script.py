@@ -64,7 +64,7 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
     newDataLines = generate_cfg_lines(
         cfgDataList, modList, dataRefLines, "data=", True)
 
-    with open(newCfg) as writer:
+    with open(newCfg, 'w') as writer:
         for entry in newBsaLines:
             writer.write(entry + '\n')
 
