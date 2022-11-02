@@ -14,7 +14,7 @@ class path:
 skipped: List[path] = []
 
 
-def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsCfg: bool):
+def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsCfg: bool, newCfg: str):
     espRefLines = []
     dataRefLines = []
     bsaRefLines = []
@@ -64,19 +64,15 @@ def install_mods(modList: List[path], cfgFile: str, reference: str, referenceIsC
     newDataLines = generate_cfg_lines(
         cfgDataList, modList, dataRefLines, "data=", True)
 
-    print("\nfallback-archives (bsa files)\n")
-    for entry in newBsaLines:
-        print(entry)
+    with open(newCfg) as writer:
+        for entry in newBsaLines:
+            writer.write(entry + '\n')
 
-    print("\ncontent (esp, esm and omwaddon files)\n")
-    for entry in newEspLines:
-        print(entry)
+        for entry in newEspLines:
+            writer.write(entry + '\n')
 
-    print("\ndata (meshes, textures, etc.)\n")
-    for entry in newDataLines:
-        print("\"" + entry + "\"")
-
-    print()
+        for entry in newDataLines:
+            writer.write(entry + '\n')
 
 
 def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, prefix: str, cfgIsPath: bool) -> List[str]:
@@ -127,7 +123,7 @@ def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, pref
     return newLines
 
 
-#horrible optimization. I wanted to parallelize, but python is a bitch
+# horrible optimization. I wanted to parallelize, but python is a bitch
 def custom_string_similarity(fst: str, snd: str) -> int:
     longest = fst if len(fst) > len(snd) else snd
     shortest = snd if longest == fst else fst
@@ -343,7 +339,8 @@ def find_mods(dir: path) -> List[path]:
 folder = sys.argv[1]
 cfgFile = sys.argv[2]
 reference = sys.argv[3]
-flags = map(lambda x: x.lower(), sys.argv[3:])
+newCfg = sys.argv[4]
+flags = map(lambda x: x.lower(), sys.argv[4:])
 referenceIsCfg = '-c' in flags
 manyMods = '-m' in flags
 
@@ -357,7 +354,7 @@ if manyMods:
 else:
     modDirs = find_mods(path(folder, os.path.basename(folder)))
 
-install_mods(modDirs, cfgFile, reference, referenceIsCfg)
+generate_cfg(modDirs, cfgFile, reference, referenceIsCfg, newCfg)
 
 print("\nThe following directories were skipped during this installation. They might contain broken mods or not contain mods at all.\n")
 for entry in skipped:
