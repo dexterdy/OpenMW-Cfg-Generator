@@ -283,7 +283,7 @@ def handle_defective_mod_dir(dir: path) -> List[path]:
         modDirs.extend(find_mods(newPath))
 
     else:
-        print("\ndirectory may contain mod, but is not formatted correctly:",
+        print("\ndirectory may contain mod, but is not formatted incorrectly:",
               "\"" + dir.path + "\"", "\n")
         selection = input(
             "\n[R]e-evaluate after fixing it manually, [C]hoose from list of possibly valid options, [S]kip: ")
