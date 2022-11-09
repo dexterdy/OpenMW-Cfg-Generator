@@ -40,9 +40,10 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
     elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x.strip() for x in lines if x.endswith(
-                ".esp") or x.lower().endswith(".esm") or x.lower().endswith(".omwaddon")]
-            bsaRefLines = [x.strip() for x in lines if x.endswith(".bsa")]
+            espRefLines = [x.strip() for x in lines if x.strip().lower().endswith(
+                ".esp") or x.strip().lower().endswith(".esm") or x.strip().lower().endswith(".omwaddon")]
+            bsaRefLines = [x.strip()
+                           for x in lines if x.strip().lower().endswith(".bsa")]
             dataRefLines = [
                 x.strip() for x in lines if x not in espRefLines and x not in bsaRefLines]
 

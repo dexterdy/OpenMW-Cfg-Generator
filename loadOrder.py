@@ -11,10 +11,10 @@ class path:
     name: str
 
 
-cfgFile = sys.argv[2]
-reference = sys.argv[3]
-newCfg = sys.argv[4]
-flags = map(lambda x: x.lower(), sys.argv[4:])
+cfgFile = sys.argv[1]
+reference = sys.argv[2]
+newCfg = sys.argv[3]
+flags = map(lambda x: x.lower(), sys.argv[3:])
 referenceIsCfg = '-c' in flags
 
 
@@ -29,20 +29,21 @@ def generate_cfg(cfgFile: str, reference: str, referenceIsCfg: bool, newCfg: str
     if reference != None and referenceIsCfg:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x.removeprefix("content=")
+            espRefLines = [x.strip().removeprefix("content=")
                            for x in lines if x.startswith("content=")]
-            dataRefLines = [x.removeprefix("data=")
+            dataRefLines = [x.strip().removeprefix("data=")
                             for x in lines if x.startswith("data=")]
-            bsaRefLines = [
-                x.removeprefix("fallback-archive") for x in lines if x.startswith("fallback-archive=")]
+            bsaRefLines = [x.strip().removeprefix("fallback-archive")
+                           for x in lines if x.startswith("fallback-archive=")]
     elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(
-                ".esm") or x.lower().endswith(".omwaddon")]
-            bsaRefLines = [x for x in lines if x.endswith(".bsa")]
+            espRefLines = [x.strip() for x in lines if x.strip().lower().endswith(
+                ".esp") or x.strip().lower().endswith(".esm") or x.strip().lower().endswith(".omwaddon")]
+            bsaRefLines = [x.strip()
+                           for x in lines if x.strip().lower().endswith(".bsa")]
             dataRefLines = [
-                x for x in lines if x not in espRefLines and x not in bsaRefLines]
+                x.strip() for x in lines if x not in espRefLines and x not in bsaRefLines]
 
     with open(cfgFile) as reader:
         lines = reader.readlines()
@@ -50,8 +51,8 @@ def generate_cfg(cfgFile: str, reference: str, referenceIsCfg: bool, newCfg: str
                     for x in lines if x.startswith("content=")]
         dataLines = [x.removeprefix("data=")
                      for x in lines if x.startswith("data=")]
-        bsaLines = [
-            x.removeprefix("fallback-archive=") for x in lines if x.startswith("fallback-archive=")]
+        bsaLines = [x.removeprefix("fallback-archive=")
+                    for x in lines if x.startswith("fallback-archive=")]
 
     newBsaLines = generate_cfg_lines(
         bsaLines, bsaRefLines, "fallback-archive=", 1.0/3.0)
