@@ -12,6 +12,13 @@ class path:
 
 
 skipped: List[path] = []
+folder = os.path.normpath(sys.argv[1].removeprefix("\"").removeprefix("\""))
+cfgFile = sys.argv[2]
+reference = sys.argv[3]
+newCfg = sys.argv[4]
+flags = map(lambda x: x.lower(), sys.argv[4:])
+referenceIsCfg = '-c' in flags
+manyMods = '-m' in flags
 
 
 def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsCfg: bool, newCfg: str):
@@ -24,18 +31,20 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
     if reference != None and referenceIsCfg:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x.strip()
+            espRefLines = [x.strip().removeprefix("content=")
                            for x in lines if x.startswith("content=")]
-            dataRefLines = [x.strip() for x in lines if x.startswith("data=")]
-            bsaRefLines = [
-                x.strip() for x in lines if x.startswith("fallback-archive=")]
+            dataRefLines = [x.strip().removeprefix("data=")
+                            for x in lines if x.startswith("data=")]
+            bsaRefLines = [x.strip().removeprefix("fallback-archive=")
+                           for x in lines if x.startswith("fallback-archive=")]
     elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x.strip() for x in lines if x.endswith(".esp") or x.lower().endswith(
-                ".esm") or x.lower().endswith(".omwaddon")]
+            espRefLines = [x.strip() for x in lines if x.endswith(
+                ".esp") or x.lower().endswith(".esm") or x.lower().endswith(".omwaddon")]
             bsaRefLines = [x.strip() for x in lines if x.endswith(".bsa")]
-            dataRefLines = [x.strip() for x in lines]
+            dataRefLines = [
+                x.strip() for x in lines if x not in espRefLines and x not in bsaRefLines]
 
     for mod in modList:
         with os.scandir(mod.path) as entries:
@@ -58,11 +67,11 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
                       for x in lines if x.startswith("fallback-archive=")]
 
     newBsaLines = generate_cfg_lines(
-        cfgBsaList, bsaList, bsaRefLines, "fallback-archive=", False)
+        cfgBsaList, bsaList, bsaRefLines, "fallback-archive=", False, 1.0/3.0)
     newEspLines = generate_cfg_lines(
-        cfgEspList, espList, espRefLines, "content=", False)
+        cfgEspList, espList, espRefLines, "content=", False, 1.0/3.0)
     newDataLines = generate_cfg_lines(
-        cfgDataList, modList, dataRefLines, "data=", True)
+        cfgDataList, modList, dataRefLines, "data=", True, 1.0/5.0)
 
     with open(newCfg, 'w') as writer:
         for entry in newBsaLines:
@@ -74,20 +83,26 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
         for entry in newEspLines:
             writer.write(entry + '\n')
 
-def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, prefix: str, cfgIsPath: bool, thresh: float) -> List[str]:
 
-def generate_cfg_lines(cfgList: list[str], dataList: list[path], refLines: list, prefix: str, cfgIsData: bool) -> List[str]:
+def generate_cfg_lines(cfgList: list[str], dataList: list, refLines: list, prefix: str, cfgIsPath: bool, thresh: float) -> List[str]:
     newLines = []
     toSort = defaultdict(list)
     atEnd = []
 
-    if cfgIsData == False:
+    if cfgIsPath == False:
         def cfg_name(x: str): return x
         def cfg_string(x: str): return x
-        def data_string(x: path): return x.name
+        def data_name(x: str): return x
+        def data_string(x: str): return x
     else:
-        def cfg_name(x: str): return os.path.basename(x)
-        def cfg_string(x: str): return x
+        def cfg_name(x: str): return os.path.normpath(x.removeprefix("\"").removesuffix(
+            "\"")).removeprefix(os.path.dirname(os.path.dirname(os.path.dirname(x))))
+
+        def cfg_string(x: str): return os.path.normpath(
+            x.removeprefix("\"").removesuffix("\""))
+        def data_name(x: path): return x.path.removeprefix(
+            folder) if manyMods else x.path.removeprefix(folder.removesuffix(os.path.basename(folder)))
+
         def data_string(x: path): return x.path
 
     for cfgData in cfgList:
@@ -96,7 +111,7 @@ def generate_cfg_lines(cfgList: list[str], dataList: list[path], refLines: list,
             distance = custom_string_similarity(refLine, cfg_name(cfgData))
             if distance > highest[1]:
                 highest = (i, distance)
-        if highest[0] < 0:
+        if highest[1] < thresh:
             atEnd.append(cfg_string(cfgData))
         else:
             toSort[highest[0]].append(cfg_string(cfgData))
@@ -104,7 +119,7 @@ def generate_cfg_lines(cfgList: list[str], dataList: list[path], refLines: list,
     for newData in dataList:
         highest = (-1, 0)
         for i, refLine in enumerate(refLines):
-            distance = custom_string_similarity(refLine, newData.name)
+            distance = custom_string_similarity(refLine, data_name(newData))
             if distance > highest[1]:
                 highest = (i, distance)
         if highest[0] < 0:
@@ -116,13 +131,13 @@ def generate_cfg_lines(cfgList: list[str], dataList: list[path], refLines: list,
         if i not in toSort:
             continue
         for newData in toSort[i]:
-            if cfgIsData:
+            if cfgIsPath:
                 newLines.append(prefix + "\"" + newData + "\"")
             else:
                 newLines.append(prefix + data)
 
     for data in atEnd:
-        if cfgIsData:
+        if cfgIsPath:
             newLines.append(prefix + "\"" + newData + "\"")
         else:
             newLines.append(prefix + data)
@@ -342,14 +357,6 @@ def find_mods(dir: path) -> List[path]:
 
     return modDirs
 
-
-folder = sys.argv[1]
-cfgFile = sys.argv[2]
-reference = sys.argv[3]
-newCfg = sys.argv[4]
-flags = map(lambda x: x.lower(), sys.argv[4:])
-referenceIsCfg = '-c' in flags
-manyMods = '-m' in flags
 
 modDirs = []
 
