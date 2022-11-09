@@ -47,11 +47,11 @@ def generate_cfg(cfgFile: str, reference: str, referenceIsCfg: bool, newCfg: str
 
     with open(cfgFile) as reader:
         lines = reader.readlines()
-        espLines = [x.removeprefix("content=")
+        espLines = [x.strip().removeprefix("content=")
                     for x in lines if x.startswith("content=")]
-        dataLines = [x.removeprefix("data=")
+        dataLines = [x.strip().removeprefix("data=")
                      for x in lines if x.startswith("data=")]
-        bsaLines = [x.removeprefix("fallback-archive=")
+        bsaLines = [x.strip().removeprefix("fallback-archive=")
                     for x in lines if x.startswith("fallback-archive=")]
 
     newBsaLines = generate_cfg_lines(
