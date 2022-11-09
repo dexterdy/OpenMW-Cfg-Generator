@@ -110,7 +110,6 @@ def generate_cfg_lines(cfgList: list, refLines: list, prefix: str, cfgIsPath: bo
         if highest[1] < thresh:
             atEnd.append(cfgData)
         else:
-            print(compare_string(cfgData), compare_string(refLines[highest[0]]))
             toSort[highest[0]].append((cfgData, highest[1]))
 
     for i in range(len(refLines)):
