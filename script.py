@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import os
 import sys
 from typing import List
+import loadOrder
 
 
 @dataclass
@@ -22,38 +23,16 @@ manyMods = '-m' in flags
 
 
 def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsCfg: bool, newCfg: str):
-    espRefLines = []
-    dataRefLines = []
-    bsaRefLines = []
     espList = []
     bsaList = []
-
-    if reference != None and referenceIsCfg:
-        with open(reference) as reader:
-            lines = reader.readlines()
-            espRefLines = [x.strip().removeprefix("content=")
-                           for x in lines if x.startswith("content=")]
-            dataRefLines = [x.strip().removeprefix("data=")
-                            for x in lines if x.startswith("data=")]
-            bsaRefLines = [x.strip().removeprefix("fallback-archive=")
-                           for x in lines if x.startswith("fallback-archive=")]
-    elif reference != None:
-        with open(reference) as reader:
-            lines = reader.readlines()
-            espRefLines = [x.strip() for x in lines if x.strip().lower().endswith(
-                ".esp") or x.strip().lower().endswith(".esm") or x.strip().lower().endswith(".omwaddon")]
-            bsaRefLines = [x.strip()
-                           for x in lines if x.strip().lower().endswith(".bsa")]
-            dataRefLines = [
-                x.strip() for x in lines if x not in espRefLines and x not in bsaRefLines]
 
     for mod in modList:
         with os.scandir(mod.path) as entries:
             for entry in entries:
                 if entry.name.lower().endswith(".esp") or entry.name.lower().endswith(".esm") or entry.name.lower().endswith(".omwaddon"):
-                    espList.append(entry)
+                    espList.append(entry.name)
                 if entry.name.lower().endswith(".bsa"):
-                    bsaList.append(entry)
+                    bsaList.append(entry.name)
 
     cfgEspList = []
     cfgDataList = []
@@ -67,105 +46,21 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
         cfgBsaList = [x.removeprefix("fallback-archive=")
                       for x in lines if x.startswith("fallback-archive=")]
 
-    newBsaLines = generate_cfg_lines(
-        cfgBsaList, bsaList, bsaRefLines, "fallback-archive=", False, 1.0/3.0)
-    newEspLines = generate_cfg_lines(
-        cfgEspList, espList, espRefLines, "content=", False, 1.0/3.0)
-    newDataLines = generate_cfg_lines(
-        cfgDataList, modList, dataRefLines, "data=", True, 1.0/5.0)
-
     with open(newCfg, 'w') as writer:
-        for entry in newBsaLines:
-            writer.write(entry + '\n')
 
-        for entry in newDataLines:
-            writer.write(entry + '\n')
+        writer.writelines(cfgBsaList)
+        for entry in bsaList:
+            writer.write("fallback-archive=" + entry + '\n')
 
-        for entry in newEspLines:
-            writer.write(entry + '\n')
+        writer.writelines(cfgDataList)
+        for entry in modList:
+            writer.write("data=\"" + entry.name + '\"\n')
 
+        writer.writelines(cfgEspList)
+        for entry in espList:
+            writer.write("content=" + entry + '\n')
 
-def generate_cfg_lines(cfgList: list[str], dataList: list, refLines: list, prefix: str, cfgIsPath: bool, thresh: float) -> List[str]:
-    newLines = []
-    toSort = defaultdict(list)
-    atEnd = []
-
-    if cfgIsPath == False:
-        def cfg_name(x: str): return x
-        def cfg_string(x: str): return x
-        def data_name(x: str): return x
-        def data_string(x: str): return x
-    else:
-        def cfg_name(x: str): return os.path.normpath(x.removeprefix("\"").removesuffix(
-            "\"")).removeprefix(os.path.dirname(os.path.dirname(os.path.dirname(x))))
-
-        def cfg_string(x: str): return os.path.normpath(
-            x.removeprefix("\"").removesuffix("\""))
-        def data_name(x: path): return x.path.removeprefix(
-            folder) if manyMods else x.path.removeprefix(folder.removesuffix(os.path.basename(folder)))
-
-        def data_string(x: path): return x.path
-
-    for cfgData in cfgList:
-        highest = (-1, 0)
-        for i, refLine in enumerate(refLines):
-            distance = custom_string_similarity(refLine, cfg_name(cfgData))
-            if distance > highest[1]:
-                highest = (i, distance)
-        if highest[1] < thresh:
-            atEnd.append(cfg_string(cfgData))
-        else:
-            toSort[highest[0]].append(cfg_string(cfgData))
-
-    for newData in dataList:
-        highest = (-1, 0)
-        for i, refLine in enumerate(refLines):
-            distance = custom_string_similarity(refLine, data_name(newData))
-            if distance > highest[1]:
-                highest = (i, distance)
-        if highest[0] < 0:
-            atEnd.append(data_string(newData))
-        else:
-            toSort[highest[0]].append(data_string(newData))
-
-    for i in range(len(refLines)):
-        if i not in toSort:
-            continue
-        for newData in toSort[i]:
-            if cfgIsPath:
-                newLines.append(prefix + "\"" + newData + "\"")
-            else:
-                newLines.append(prefix + data)
-
-    for data in atEnd:
-        if cfgIsPath:
-            newLines.append(prefix + "\"" + newData + "\"")
-        else:
-            newLines.append(prefix + data)
-
-    return newLines
-
-
-# horrible optimization. I wanted to parallelize, but python is a bitch
-def custom_string_similarity(fst: str, snd: str) -> int:
-    longest = (fst if len(fst) > len(snd) else snd).lower()
-    shortest = (snd if longest == fst else fst).lower()
-
-    max = 0
-    for shift in range(-(len(shortest)-1), len(longest)):
-        value = 0
-
-        for index in range(len(longest)):
-            sIndex = index - shift
-            if sIndex < 0 or sIndex >= len(shortest):
-                continue
-
-            if longest[index] == shortest[sIndex]:
-                value += 1
-
-        max = value if value > max else max
-
-    return float(max) / float(len(shortest))
+    loadOrder.generate_cfg(cfgFile, reference, referenceIsCfg, newCfg)
 
 
 def give_options(originalDir: path, dirList: List[path], ignoreAbsentNumers: bool) -> List[path]:

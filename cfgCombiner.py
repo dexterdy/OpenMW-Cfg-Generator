@@ -22,6 +22,9 @@ else:
     small = fileOneLines
 
 for i, line in enumerate(small):
+    if line in large:
+        continue
+
     putAfterThisIndex = 0
     for x in range(i, 0, -1):
         if small[x] in large:
