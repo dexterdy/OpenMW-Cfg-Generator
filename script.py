@@ -24,18 +24,18 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
     if reference != None and referenceIsCfg:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x for x in lines if x.startswith("content=")]
-            dataRefLines = [x for x in lines if x.startswith("data=")]
+            espRefLines = [x.strip()
+                           for x in lines if x.startswith("content=")]
+            dataRefLines = [x.strip() for x in lines if x.startswith("data=")]
             bsaRefLines = [
-                x for x in lines if x.startswith("fallback-archive=")]
+                x.strip() for x in lines if x.startswith("fallback-archive=")]
     elif reference != None:
         with open(reference) as reader:
             lines = reader.readlines()
-            espRefLines = [x for x in lines if x.endswith(".esp") or x.lower().endswith(
+            espRefLines = [x.strip() for x in lines if x.endswith(".esp") or x.lower().endswith(
                 ".esm") or x.lower().endswith(".omwaddon")]
-            bsaRefLines = [x for x in lines if x.endswith(".bsa")]
-            dataRefLines = [
-                x for x in lines if x not in espRefLines and x not in bsaRefLines]
+            bsaRefLines = [x.strip() for x in lines if x.endswith(".bsa")]
+            dataRefLines = [x.strip() for x in lines]
 
     for mod in modList:
         with os.scandir(mod.path) as entries:
@@ -68,26 +68,27 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
         for entry in newBsaLines:
             writer.write(entry + '\n')
 
-        for entry in newEspLines:
-            writer.write(entry + '\n')
-
         for entry in newDataLines:
             writer.write(entry + '\n')
 
+        for entry in newEspLines:
+            writer.write(entry + '\n')
 
 def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, prefix: str, cfgIsPath: bool, thresh: float) -> List[str]:
+
+def generate_cfg_lines(cfgList: list[str], dataList: list[path], refLines: list, prefix: str, cfgIsData: bool) -> List[str]:
     newLines = []
     toSort = defaultdict(list)
     atEnd = []
 
-    if cfgIsPath == False:
-        def cfg_name(x): return x
-        def cfg_string(x): return x
-        def data_string(x): return x.name
+    if cfgIsData == False:
+        def cfg_name(x: str): return x
+        def cfg_string(x: str): return x
+        def data_string(x: path): return x.name
     else:
-        def cfg_name(x): return x.name
-        def cfg_string(x): return x.path
-        def data_string(x): return x.path
+        def cfg_name(x: str): return os.path.basename(x)
+        def cfg_string(x: str): return x
+        def data_string(x: path): return x.path
 
     for cfgData in cfgList:
         highest = (-1, 0)
@@ -115,10 +116,16 @@ def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, pref
         if i not in toSort:
             continue
         for newData in toSort[i]:
-            newLines.append(prefix + newData)
+            if cfgIsData:
+                newLines.append(prefix + "\"" + newData + "\"")
+            else:
+                newLines.append(prefix + data)
 
     for data in atEnd:
-        newLines.append(prefix + data)
+        if cfgIsData:
+            newLines.append(prefix + "\"" + newData + "\"")
+        else:
+            newLines.append(prefix + data)
 
     return newLines
 
