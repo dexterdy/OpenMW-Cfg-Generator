@@ -75,7 +75,7 @@ def generate_cfg(modList: List[path], cfgFile: str, reference: str, referenceIsC
             writer.write(entry + '\n')
 
 
-def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, prefix: str, cfgIsPath: bool) -> List[str]:
+def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, prefix: str, cfgIsPath: bool, thresh: float) -> List[str]:
     newLines = []
     toSort = defaultdict(list)
     atEnd = []
@@ -125,8 +125,8 @@ def generate_cfg_lines(cfgList: list, dataList: list[path], refLines: list, pref
 
 # horrible optimization. I wanted to parallelize, but python is a bitch
 def custom_string_similarity(fst: str, snd: str) -> int:
-    longest = fst if len(fst) > len(snd) else snd
-    shortest = snd if longest == fst else fst
+    longest = (fst if len(fst) > len(snd) else snd).lower()
+    shortest = (snd if longest == fst else fst).lower()
 
     max = 0
     for shift in range(-(len(shortest)-1), len(longest)):
@@ -142,7 +142,7 @@ def custom_string_similarity(fst: str, snd: str) -> int:
 
         max = value if value > max else max
 
-    return max
+    return float(max) / float(len(shortest))
 
 
 def give_options(originalDir: path, dirList: List[path], ignoreAbsentNumers: bool) -> List[path]:
